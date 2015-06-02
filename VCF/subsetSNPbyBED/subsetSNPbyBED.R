@@ -4,14 +4,18 @@ bedfile = args[2]
 flank = args[3]
 outdir = args[4]
 
-dir.create(outdir, showWarnings = FALSE)
+re = dir.create(outdir, showWarnings = FALSE,recursive=T)
+if (!re){
+	print('Outdir exists! will be emptied')
+	system(paste0('rm -r ',outdir))
+	system(paste0('mkdir ',outdir))
+}
 mat <- read.delim(bedfile,header=F,stringsAsFactors=F)
 
 files <- list.files(VCFdir,pattern = "\\.vcf$")
 for (fileidx in 1:length(files)){
 	file = files[fileidx]
-	split1 = strsplit(file,split='.vcf')[[1]][1]
-	thischr = as.numeric(strsplit(split1,split='chr')[[2]][2])
+	thischr = strsplit(file,split='.vcf')[[1]][1]
 	print(paste0('subseting ',thischr));
 	
 	outfile = paste0(outdir,'/',thischr,'.vcf');
@@ -20,7 +24,7 @@ for (fileidx in 1:length(files)){
 	if (length(pick)>0){
 		part = mat[pick,]
 		write.table(part,file='tmp',row.names=F,col.names=F,quote=F,sep="\t")
-		cmd = paste('python subsetSNPbyBED.py ',snpfile,'tmp',flank,'>>',outfile,sep=' ');
+		cmd = paste('python subsetSNPbyBED.py ',file.path(VCFdir,file),'tmp',flank,'>',outfile,sep=' ');
 		system(cmd);
 		system('rm tmp');
 	}

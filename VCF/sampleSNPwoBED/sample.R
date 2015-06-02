@@ -16,7 +16,7 @@ sampleN<- function(vcfdir,num,outdir){
 	cmd = paste0(cmd,' > all.tmp')
 	system(cmd)
 
-	system(paste0('shuf all.tmp -n ',num,' | sort -n -k 1 > sample.tmp'))
+	system(paste0('shuf all.tmp -n ',num,' | sort -n -k 2 -s | sort -n -k 1 -s > sample.tmp'))
 	#system(paste0('head -n ',num,' all.shuf.tmp | sort -n -k 1 > sample.tmp'))
 
 	dir.create(outdir, showWarnings = FALSE)
@@ -40,7 +40,12 @@ if (file.exists(bedfile)){
 	}
 }
 
-dir.create(outdir, showWarnings = FALSE)
+re=dir.create(outdir, showWarnings = FALSE,recursive=T)
+if (!re){
+	print('Outdir exists! Will empty it')
+	system(paste0('rm -r ',outdir))
+	dir.create(outdir, showWarnings = FALSE)
+}
 
 print(paste0('sample ',s_num,' from ',VCFdir))
 sampleN(VCFdir,s_num,'sample1rd')
@@ -51,8 +56,10 @@ if (bedfile != 'NA'){
 	system(cmd)
 
 	print('Sample again')
-	sampleN('excluded',samplenum,outdir)
+	sampleN('excluded',samplenum,'sample2rd')
+	system(paste('cp -r sample2rd/*',outdir,sep=' '))
 	system('rm -r excluded')
+	system('rm -r sample2rd')
 }else{
 	system(paste('cp -r sample1rd/*',outdir,sep=' '))
 }
