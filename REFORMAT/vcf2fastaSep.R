@@ -1,4 +1,5 @@
 source('/cluster/zeng/code/research/tools/GENOME/utility.R')
+require('snow')
 args = commandArgs(T)
 vcfdir = args[1]
 genomefile = args[2]
@@ -10,14 +11,27 @@ dir.create(out_dir,showWarnings=F)
 out_ref = file.path(out_dir,'ref.fa')
 out_alt = file.path(out_dir,'alt.fa')
 files = list.files(vcfdir,pattern='\\.vcf$')
-
-ref_con = file(out_ref,open='w')
-alt_con = file(out_alt,open='w')
+pick = c()
 for (i in 1:length(files)){
-	cmd = paste0('awk \'{OFS=\"\t\";print $1, $2, $4, $5}\' ',file.path(vcfdir,files[i]),' > tmp')
+	re = system(paste0('wc ',file.path(vcfdir,files[i]),' -l'),intern=T)
+	if (as.numeric(strsplit(re,' ')[[1]][1])!=0){
+		pick = c(pick,i)
+	}
+}
+files = files[pick]
+
+cl <- makeCluster(11, type = "SOCK") 
+clusterExport(cl, c("files","vcfdir","genomefile","offsetfile","flank_len","out_dir")) 
+cc = clusterCall(cl,function(){source('/cluster/zeng/code/research/tools/GENOME/utility.R')})
+run <- function(i){
+	ref_con = file(file.path(out_dir,paste0('ref',i)),open='w')
+	alt_con = file(file.path(out_dir,paste0('alt',i)),open='w')
+	t_tmp = file.path(out_dir,paste0('tmp',i))
+
+	cmd = paste0('awk \'{OFS=\"\t\";print $1, $2, $4, $5}\' ',file.path(vcfdir,files[i]),' > ',t_tmp)
 	system(cmd)
 
-	data <- read.delim('tmp',header=F,stringsAsFactors=F)
+	data <- read.delim(t_tmp,header=F,stringsAsFactors=F)
 	data[data[,3]==T,3] = rep('T')
 	data[data[,4]==T,4] = rep('T')
 
@@ -44,8 +58,26 @@ for (i in 1:length(files)){
 		writeLines(seq,alt_con)
 
 	}
-	
-	system('rm tmp')
+	close(ref_con)
+    close(alt_con)
+	system(paste0('rm ',t_tmp))
 }
-close(ref_con)
-close(alt_con)
+re = clusterApplyLB(cl,1:length(files),run)
+stopCluster(cl)
+
+cmd1 = 'cat'
+cmd2 = 'cat'
+for (i in 1:length(files)){
+	cmd1 = paste(cmd1,file.path(out_dir,paste0('ref',i)),sep=' ')
+	cmd2 = paste(cmd2,file.path(out_dir,paste0('alt',i)),sep=' ')
+}
+cmd1 = paste(cmd1,'>',out_ref)
+cmd2 = paste(cmd2,'>',out_alt)
+
+system(cmd1)
+system(cmd2)
+
+for (i in 1:length(files)){
+	system(paste0('rm ',file.path(out_dir,paste0('ref',i))))
+	system(paste0('rm ',file.path(out_dir,paste0('alt',i))))
+}

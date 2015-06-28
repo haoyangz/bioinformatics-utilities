@@ -22,7 +22,11 @@ return cvret;
 uconv <- cxxfunction(signature(vadd="numeric",ksize="integer"),uniconv,plugin="Rcpp",includes="#include <numeric>")
 
 readReal<-function(fname,basedir,rmax,chrheld){
-	offsets = as.double(readLines(file.path(basedir,fname,'/input/offsets.txt')))
+	offsetfile = file.path(basedir,fname,'/input/offsets.txt')
+	if (!file.exists(offsetfile)){
+		system(paste0('lzop -d ',offsetfile,'.lzo'))
+	}
+	offsets = as.double(readLines(offsetfile))
     chrlen=diff(offsets)
 	readsize=chrlen[chrheld]
 	readfile = file.path(basedir,fname,'/input/reads.in')
@@ -38,7 +42,11 @@ readReal<-function(fname,basedir,rmax,chrheld){
 }
 
 readFitted<-function(fname,basedir,rmax,chrheld){
-	offsets = as.double(readLines(file.path(basedir,fname,'/input/offsets.txt')))
+	offsetfile = file.path(basedir,fname,'/input/offsets.txt')
+	if (!file.exists(offsetfile)){
+		system(paste0('lzop -d ',offsetfile,'.lzo'))
+	}
+	offsets = as.double(readLines(offsetfile))
     chrlen=diff(offsets)
 	readsize=chrlen[chrheld]
 	rbhat=readBin(file.path(basedir,fname,paste0('/summaries/fitted.',chrheld,'.bin')),double(),size=4,n=readsize)
@@ -47,7 +55,11 @@ readFitted<-function(fname,basedir,rmax,chrheld){
 }
 
 readBaseline<-function(fname,basedir,rmax,chrheld){
-	offsets = as.double(readLines(file.path(basedir,fname,'/input/offsets.txt')))
+	offsetfile = file.path(basedir,fname,'/input/offsets.txt')	
+	if (!file.exists(offsetfile)){
+		system(paste0('lzop -d ',offsetfile,'.lzo'))
+	}
+	offsets = as.double(readLines(offsetfile))
     chrlen=diff(offsets)
 	readsize=chrlen[chrheld]
 	rbhat=readBin(file.path(baselinedir,fname,paste0('/baseline/chr',chrheld,'.',fname,'.baseline.bin')),double(),size=4,n=readsize)

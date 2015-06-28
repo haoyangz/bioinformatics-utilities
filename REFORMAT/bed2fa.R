@@ -1,4 +1,3 @@
-source('/cluster/zeng/code/research/tools//GENOME/readRef.R')
 source('/cluster/zeng/code/research/tools/GENOME/utility.R')
 pullSeq <- function(loci,geomefile,offsetfile){
 	uni_chr = unique(loci[,1])
