@@ -40,21 +40,21 @@ run <- function(i){
 	ref = readRef(genomefile,offsetfile,chr)
 	for (var in 1:nrow(data)){
 		pos = data[var,2]
-		s = pos-flank_len
-		e = pos+flank_len
+		s = floor(pos-flank_len)
+		e = floor(pos+flank_len)
 		name = paste0('chr',chr,':',data[var,2],'-',data[var,2])
 		
 		writeLines(paste0('>',name),ref_con)
 		seq = translate(ref[s:e])
-		if (substr(seq,flank_len+1,flank_len+1) != data[var,3]){
-			print(substr(seq,flank_len+1,flank_len+1))
+		if (substr(seq,ceiling(flank_len+1),ceiling(flank_len+1)) != data[var,3]){
+			print(substr(seq,ceiling(flank_len+1),ceiling(flank_len+1)))
 			print(data[var,3])
 			print('Ref doesn\'t match!')
 		}
 		writeLines(seq,ref_con)
 
 		writeLines(paste0('>',name),alt_con)
-		substr(seq,flank_len+1,flank_len+1) = data[var,4]
+		substr(seq,ceiling(flank_len+1),ceiling(flank_len+1)) = data[var,4]
 		writeLines(seq,alt_con)
 
 	}

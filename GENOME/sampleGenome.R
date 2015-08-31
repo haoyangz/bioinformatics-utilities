@@ -42,8 +42,8 @@ sampleGenome <- function(num,minchr,maxchr,flank,offsetfile,genomefile){
 		win[[chridx]] = flank(IRanges(this_s,width=1),both=T,width=flank)
 		loci_range = (loci_cnt+1):(loci_cnt+length(this_s))
 		loci[loci_range,1] = rep(chr+minchr-1)
-		loci[loci_range,2] = this_s - flank
-		loci[loci_range,3] = this_s + flank - 1
+		loci[loci_range,2] = floor(this_s - flank)
+		loci[loci_range,3] = floor(this_s + flank)
 		loci_cnt = loci_cnt + length(this_s)
 	}
 	loci = loci[order(loci[,2]),]

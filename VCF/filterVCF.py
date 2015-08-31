@@ -45,8 +45,8 @@ def main():
         while line1 != '':
             line1_split = line1.split('\t')
             info_split = line1_split[7].split(';')
-            info_key = [x.split('=')[0] for x in info_split]
-            info_value = [x.split('=')[1] for x in info_split]
+            info_key = [x.split('=')[0] if '=' in x else x for x in info_split]
+            info_value = [x.split('=')[1] if '=' in x else 'NA' for x in info_split]
             flag = True
             for query in range(len(value)):
                 if relation[query] == 'e':
