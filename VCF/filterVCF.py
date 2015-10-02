@@ -26,7 +26,7 @@ def main():
     relation = sys.argv[5].split(';')
 
     for i in range(len(relation)):
-        if relation[i]!='e':
+        if relation[i]!='e' and relation[i] != 'ne':
             value[i] = float(value[i])
 
     infiles = [ f for f in listdir(inDir) if path.isfile(path.join(inDir,f)) ]
@@ -61,8 +61,12 @@ def main():
                             if float(info_value[info_key.index(keyword[query])]) >value[query]:
                                 flag = False
                         else:
-                            print 'Unrecognized relation : ' + relation[query]
-                            sys.exit(2)
+                            if relation[query] == 'ne':
+                                if info_value[info_key.index(keyword[query])] == value[query]:
+                                    flag = False
+                            else:
+                                print 'Unrecognized relation : ' + relation[query]
+                                sys.exit(2)
 
             if flag:
                 outfile.write(line1)
