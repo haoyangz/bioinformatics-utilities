@@ -1,5 +1,5 @@
 args <- commandArgs(T)
-
+options("scipen"=100)
 infile = args[1]
 outfile = args[2]
 flank = as.numeric(args[3])
