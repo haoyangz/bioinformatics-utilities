@@ -55,7 +55,11 @@ run <- function(i){
 		pos = data[var,2]
 		s = floor(pos-flank_len)
 		ref_e = floor(pos+flank_len) 
-		alt_e = ref_e + max(0,nchar(data[var,3])-nchar(data[var,4]))
+		if (data[var,4] == '-'){
+			alt_e = ref_e + nchar(data[var,3])
+		}else{
+			alt_e = ref_e + max(0,nchar(data[var,3])-nchar(data[var,4]))
+		}
 		name = paste0('chr',chr,':',data[var,2],':',flank_len)
 		
 		if (combine_allele=='T'){
@@ -84,7 +88,11 @@ run <- function(i){
 		}
 		alt_seq_left = substr(alt_seq,1,var_rel_pos -1)
 		alt_seq_right = substr(alt_seq,var_rel_pos + nchar(data[var,3]),nchar(alt_seq))
-		alt_seq = paste0(alt_seq_left,data[var,4],alt_seq_right)
+		if (data[var,4] == '-'){
+			alt_seq = paste0(alt_seq_left,alt_seq_right)
+		}else{
+			alt_seq = paste0(alt_seq_left,data[var,4],alt_seq_right)
+		}
 		writeLines(substr(alt_seq,1,ref_e - s + 1),alt_con)
 		
 		if (combine_allele=='T'){
