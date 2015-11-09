@@ -37,14 +37,14 @@ def parse_args():
     user = pwd.getpwuid(os.getuid())[0]
 
     # Positional (unnamed) arguments:
-    parser.add_argument("infile",  type=str, help="Sequence in fasta format")
+    parser.add_argument("infile",  type=str, help="Sequence in FASTA/TSV format (with .fa/.fasta or .tsv extension)")
     #parser.add_argument("infile_type",type=str,help="Format of input (FASTA/TSV)")
-    parser.add_argument("labelfile",  type=str,help="Label of the sequence")
-    parser.add_argument("outfile",  type=str, help="Label of the sequence")
+    parser.add_argument("labelfile",  type=str,help="Label of the sequence. One number per line")
+    parser.add_argument("outfile",  type=str, help="Output file (example: $MODEL_TOPDIR$/data/train.h5). ")
 
     # Optional arguments:
-    parser.add_argument("-m", "--mapper", dest="mapper", default="", help="Mapper that transforms sequence to 2D matrix")
-    parser.add_argument("-b", "--batch", dest="batch", type=int,default=5000, help="Batch size for data storage")
+    parser.add_argument("-m", "--mapper", dest="mapper", default="", help="A TSV file mapping each nucleotide to a vector. The first column should be the nucleotide, and the rest denote the vectors. (Default mapping: A:[1,0,0,0],C:[0,1,0,0],G:[0,0,1,0],T:[0,0,0,1])")
+    parser.add_argument("-b", "--batch", dest="batch", type=int,default=5000, help="Batch size for data storage (Defalt:5000)")
 
     return parser.parse_args()
 
@@ -90,5 +90,13 @@ if __name__ == "__main__":
     label = np.asarray(label)
     if args.mapper == "":
         args.mapper = {'A':[1,0,0,0],'C':[0,1,0,0],'G':[0,0,1,0],'T':[0,0,0,1]}
+    else:
+        args.mapper = {}
+        with open(args.mapper,'r') as f:
+            for x in f:
+                line = x.strip().split()
+                word = line[0]
+                vec = [float(item) for item in line[1:]]
+                args.mapper[word] = vec
 
     output(seqdata,args.mapper,label,args.outfile,args.batch,len(args.mapper['A']))
