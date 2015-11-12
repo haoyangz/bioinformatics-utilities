@@ -6,19 +6,24 @@ def outputHDF5(data,label,filename):
     comp_kwargs = {'compression': 'gzip', 'compression_opts': 1}
     label = [[x.astype(np.float32)] for x in label]
     with h5py.File(filename, 'w') as f:
-    	f.create_dataset('data', data=data, **comp_kwargs)
+    	f.create_dataset('pair_data', data=data, **comp_kwargs)
     	f.create_dataset('label', data=label, **comp_kwargs)
 
-def seq2feature(data,mapper,label,out_filename,batchsize,worddim):
+
+def embed(seq,mapper,worddim):
+    mat = np.asarray([mapper[element] if element in mapper else np.random.rand(worddim)*2-1 for element in seq])
+    return mat
+
+def seq2feature(data1,data2,mapper,label,out_filename,batchsize,worddim):
     out = []
     lastprint = 0;
     cnt = 0
     batchnum = 0;
-    for seq in data:
-        mat = np.asarray([mapper[element] if element in mapper else np.random.rand(worddim)*2-1 for element in seq])
-        result = mat.transpose()
-        result1 = [ [a] for a in result]
-        out.append(result1)
+    datalen = len(data1)
+    for dataidx in range(datalen):
+        mat = np.asarray([embed(data1[dataidx],mapper,worddim),embed(data2[dataidx],mapper,worddim)])
+        result = mat.transpose((2,0,1))
+        out.append(result)
         cnt = cnt + 1
         if cnt % batchsize ==0:
             batchnum = batchnum + 1
@@ -37,8 +42,8 @@ def parse_args():
     user = pwd.getpwuid(os.getuid())[0]
 
     # Positional (unnamed) arguments:
-    parser.add_argument("infile",  type=str, help="Sequence in FASTA/TSV format (with .fa/.fasta or .tsv extension)")
-    #parser.add_argument("infile_type",type=str,help="Format of input (FASTA/TSV)")
+    parser.add_argument("infile1",  type=str, help="Sequence in FASTA/TSV format (with .fa/.fasta or .tsv extension)")
+    parser.add_argument("infile2",  type=str, help="Sequence in FASTA/TSV format (with .fa/.fasta or .tsv extension)")
     parser.add_argument("labelfile",  type=str,help="Label of the sequence. One number per line")
     parser.add_argument("outfile",  type=str, help="Output file (example: $MODEL_TOPDIR$/data/train.h5). ")
 
@@ -50,12 +55,12 @@ def parse_args():
     return parser.parse_args()
 
 
-def output(region,mapper,label,out_filename,batchsize,worddim,prefix):
-    batch_num = seq2feature(region,mapper,label,out_filename,batchsize,worddim)
+def output(region1,region2,mapper,label,out_filename,batchsize,worddim,manifestprefix):
+    batch_num = seq2feature(region1,region2,mapper,label,out_filename,batchsize,worddim)
     locfile = out_filename.split('.')[0] + '.txt'
     with open(locfile,'w') as f:
         for i in range(batch_num):
-            f.write('.'.join(['/'.join([prefix]+out_filename.split('/')[-2:]),'batch'+str(i+1)])+'\n')
+            f.write('.'.join(['/'.join([manifestprefix]+out_filename.split('/')[-2:]),'batch'+str(i+1)])+'\n')
 
 
 def readFasta(fafile):
@@ -73,22 +78,31 @@ def readTSV(infile):
         seqdata = [x.strip().split()[1] for x in f]
     return seqdata
 
-if __name__ == "__main__":
-
-    args = parse_args()
-    filename, file_extension = splitext(args.infile)
+def readData(infile):
+    filename, file_extension = splitext(infile)
     assert(file_extension == '.fasta' or file_extension == '.fa' or file_extension  == '.tsv')
 
     if file_extension == '.fasta' or file_extension == '.fa':
-        seqdata = readFasta(args.infile)
+        seqdata = readFasta(infile)
     else:
-        seqdata = readTSV(args.infile)
+        seqdata = readTSV(infile)
+    return seqdata
 
-    seqdata = np.asarray([list(x) for x in seqdata])
+if __name__ == "__main__":
+
+    args = parse_args()
+
+    seqdata1 = readData(args.infile1)
+    seqdata2 = readData(args.infile2)
+    assert len(seqdata1) == len(seqdata2)
+
+    seqdata1 = np.asarray([list(x) for x in seqdata1])
+    seqdata2 = np.asarray([list(x) for x in seqdata2])
 
     with open(args.labelfile,'r') as f:
         label = [int(x.strip()) for x in f]
     label = np.asarray(label)
+
     if args.mapper == "":
         args.mapper = {'A':[1,0,0,0],'C':[0,1,0,0],'G':[0,0,1,0],'T':[0,0,0,1]}
     else:
@@ -100,4 +114,4 @@ if __name__ == "__main__":
                 vec = [float(item) for item in line[1:]]
                 args.mapper[word] = vec
 
-    output(seqdata,args.mapper,label,args.outfile,args.batch,len(args.mapper['A']),args.maniprefix)
+    output(seqdata1,seqdata2,args.mapper,label,args.outfile,args.batch,len(args.mapper['A']),args.maniprefix)
