@@ -8,7 +8,12 @@ out_dir = args[4]
 flank_len = as.numeric(args[5])
 combine_allele = args[6]
 
+if (file.exists(out_dir)){
+	print('outputdir exist;will be removed')
+	system(paste0('rm -r ',out_dir))
+}
 dir.create(out_dir,showWarnings=F)
+
 if (combine_allele=='T'){
 	out_file1 = file.path(out_dir,'all.fa')
 	out_file2 = file.path(out_dir,'all.pairs.txt')
