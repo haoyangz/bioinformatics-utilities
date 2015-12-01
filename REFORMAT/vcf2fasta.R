@@ -50,25 +50,54 @@ run <- function(i){
 	chr = as.numeric(data[1,1])
 	
 	ref = readRef(genomefile,offsetfile,chr)
-	var_rel_pos = ceiling(flank_len+1)
+	ref_size = length(ref)
+	finallen = floor(2*flank_len+1)
 	for (var in 1:nrow(data)){
+		if (data[var,4] == '-'){
+			altseq = ''
+		}else{
+			altseq = data[var,4]
+		}
+		reflen = nchar(data[var,3])
+		altlen = nchar(altseq)
+
 		pos = data[var,2]
 		s = floor(pos-flank_len)
-		ref_e = floor(pos+flank_len) 
-		if (data[var,4] == '-'){
-			alt_e = ref_e + nchar(data[var,3])
-		}else{
-			alt_e = ref_e + max(0,nchar(data[var,3])-nchar(data[var,4]))
+		ref_e = floor(pos+flank_len)
+		
+		var_rel_pos = ceiling(flank_len+1)
+		if (s<1){
+        	ref_e = ref_e + 1-s
+			var_rel_pos = pos
+        	s = 1
+        }
+        if (ref_e>ref_size){
+        	s = s - (ref_e - ref_size)
+        	ref_e = ref_size
+        }
+
+		alt_left_s = s
+		alt_left_e = pos-1
+		alt_right_s = pos + reflen
+		alt_right_e = alt_right_s + (finallen - (pos-1-s+1) - altlen) -1
+		stopifnot((alt_left_e - alt_left_s+1) + altlen + (alt_right_e - alt_right_s + 1)==finallen)
+
+		if (alt_right_e > ref_size){
+			alt_left_s = alt_left_s - (alt_right_e - ref_size)
+			alt_right_e = ref_size
+			stopifnot((alt_left_e - alt_left_s+1) + altlen + (alt_right_e - alt_right_s + 1)==finallen)
 		}
+
 		name = paste0('chr',chr,':',data[var,2],':',flank_len)
 		
+		#Generate refernece seq
 		if (combine_allele=='T'){
 			writeLines(paste0('>ref:',name),ref_con)
 		}else{
 			writeLines(paste0('>',name),ref_con)
 		}
 		ref_seq = translate(ref[s:ref_e])
-		ref_allele = substr(ref_seq,var_rel_pos,var_rel_pos+nchar(data[var,3])-1)
+		ref_allele = substr(ref_seq,var_rel_pos,var_rel_pos+reflen-1)
 		if (ref_allele != data[var,3]){
 			print(ref_allele)
 			print(data[var,3])
@@ -76,24 +105,16 @@ run <- function(i){
 		}
 		writeLines(ref_seq,ref_con)
 
+		#Generate alternate sequence
 		if (combine_allele=='T'){
 			writeLines(paste0('>alt:',name),alt_con)
 		}else{
 			writeLines(paste0('>',name),alt_con)
 		}
-		if (ref_e<alt_e){
-			alt_seq = translate(ref[s:alt_e])
-		}else{
-			alt_seq = ref_seq
-		}
-		alt_seq_left = substr(alt_seq,1,var_rel_pos -1)
-		alt_seq_right = substr(alt_seq,var_rel_pos + nchar(data[var,3]),nchar(alt_seq))
-		if (data[var,4] == '-'){
-			alt_seq = paste0(alt_seq_left,alt_seq_right)
-		}else{
-			alt_seq = paste0(alt_seq_left,data[var,4],alt_seq_right)
-		}
-		writeLines(substr(alt_seq,1,ref_e - s + 1),alt_con)
+		alt_seq_left = translate(ref[alt_left_s:alt_left_e])
+		alt_seq_right = translate(ref[alt_right_s:alt_right_e])
+		alt_seq = paste0(alt_seq_left,altseq,alt_seq_right)
+		writeLines(alt_seq,alt_con)
 		
 		if (combine_allele=='T'){
 			writeLines(paste0('ref:',name,'\t','alt:',name),p_con)
