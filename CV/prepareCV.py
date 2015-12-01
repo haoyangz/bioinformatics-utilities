@@ -7,6 +7,7 @@
 ### filesuffix: The suffix of all the files to split, delimited with '_'. For example, '.txt_.pdf_.ref_.alt'. All the files fileprefix+filesuffix will be row-shuffled and row-split in the same way.
 ### model: Whether generate valid set. Either 'train_valid_test' or 'train_test'
 ### outputCVnum: The num of cv to output. For example, CV=5, outputCVnum=1 means split the set into 4:1 but output only one of the five possible splits.
+### toshuf: whether to shuff the input files in the same way (Y/N)
 import os,sys
 from sklearn.cross_validation import KFold
 
@@ -17,6 +18,7 @@ fileprefix = sys.argv[4]
 filesuffix = sys.argv[5]
 mode = sys.argv[6]
 outputCVnum = int(sys.argv[7])
+toshuf = sys.argv[8]
 
 def file_len(fname):
     with open(fname) as f:
@@ -48,7 +50,8 @@ files = [os.path.join(filedir,fileprefix+x) for x in suffixes]
 files_shuffled = [x+'.shuffled' for x in files]
 
 ### Shuffle the files in the same way
-cmd = ' '.join(['paste -d \'!\' '] + files + [' |  shuf | awk -v FS=\"!\" \'{ '])
+shufseq = ' | shuf ' if toshuf=='Y' else ""
+cmd = ' '.join(['paste -d \'!\' '] + files + [shufseq + ' | awk -v FS=\"!\" \'{ '])
 cmd = ' '.join([cmd,'print $1 > ','\"'+files_shuffled[0]+'\"'])
 for i in range(1,len(files)):
     cmd = ' '.join([cmd,'; print $'+str(i+1),'>','\"'+files_shuffled[i]+'\"'])
