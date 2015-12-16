@@ -2,37 +2,37 @@ import argparse,pwd,os,numpy as np,h5py
 from os.path import splitext
 from itertools import izip
 
-def outputHDF5(data,label,filename):
+def outputHDF5(data,label,filename,labelname,dataname):
     print 'data shape: ',data.shape
     comp_kwargs = {'compression': 'gzip', 'compression_opts': 1}
     label = [[x.astype(np.float32)] for x in label]
     with h5py.File(filename, 'w') as f:
-    	f.create_dataset('data', data=data, **comp_kwargs)
-    	f.create_dataset('label', data=label, **comp_kwargs)
+    	f.create_dataset(dataname, data=data, **comp_kwargs)
+    	f.create_dataset(labelname, data=label, **comp_kwargs)
 
-def seq2feature(data,mapper,label,out_filename,worddim):
+def seq2feature(data,mapper,label,out_filename,worddim,labelname,dataname):
     out = []
     for seq in data:
         mat = embed(seq,mapper,worddim)
         result = mat.transpose()
         result1 = [ [a] for a in result]
         out.append(result1)
-    outputHDF5(np.asarray(out),label,out_filename)
+    outputHDF5(np.asarray(out),label,out_filename,labelname,dataname)
 
 def embed(seq,mapper,worddim):
     mat = np.asarray([mapper[element] if element in mapper else np.random.rand(worddim)*2-1 for element in seq])
     return mat
 
-def seq2feature_siamese(data1,data2,mapper,label,out_filename,worddim):
+def seq2feature_siamese(data1,data2,mapper,label,out_filename,worddim,labelname,dataname):
     out = []
     datalen = len(data1)
     for dataidx in range(datalen):
         mat = np.asarray([embed(data1[dataidx],mapper,worddim),embed(data2[dataidx],mapper,worddim)])
         result = mat.transpose((2,0,1))
         out.append(result)
-    outputHDF5(np.asarray(out),label,out_filename)
+    outputHDF5(np.asarray(out),label,out_filename,labelname,dataname)
 
-def convert(infile,labelfile,outfile,mapper,worddim,batchsize):
+def convert(infile,labelfile,outfile,mapper,worddim,batchsize,labelname,dataname):
     with open(infile) as seqfile, open(labelfile) as labelfile:
         cnt = 0
         seqdata = []
@@ -47,7 +47,7 @@ def convert(infile,labelfile,outfile,mapper,worddim,batchsize):
                 seqdata = np.asarray(seqdata)
                 label = np.asarray(label)
                 t_outfile = outfile + '.batch' + str(batchnum)
-                seq2feature(seqdata,mapper,label,t_outfile,worddim)
+                seq2feature(seqdata,mapper,label,t_outfile,worddim,labelname,dataname)
                 seqdata = []
                 label = []
         if cnt >0:
@@ -55,11 +55,11 @@ def convert(infile,labelfile,outfile,mapper,worddim,batchsize):
             seqdata = np.asarray(seqdata)
             label = np.asarray(label)
             t_outfile = outfile + '.batch' + str(batchnum)
-            seq2feature(seqdata,mapper,label,t_outfile,worddim)
+            seq2feature(seqdata,mapper,label,t_outfile,worddim,labelname,dataname)
     return batchnum
 
 
-def convert_siamese(infile1,infile2,labelfile,outfile,mapper,worddim,batchsize):
+def convert_siamese(infile1,infile2,labelfile,outfile,mapper,worddim,batchsize,labelname,dataname):
     with open(infile1) as seqfile1, open(infile2) as seqfile2,open(labelfile) as labelfile:
         cnt = 0
         seqdata1 = []
@@ -77,7 +77,7 @@ def convert_siamese(infile1,infile2,labelfile,outfile,mapper,worddim,batchsize):
                 seqdata2 = np.asarray(seqdata2)
                 label = np.asarray(label)
                 t_outfile = outfile + '.batch' + str(batchnum)
-                seq2feature_siamese(seqdata1,seqdata2,mapper,label,t_outfile,worddim)
+                seq2feature_siamese(seqdata1,seqdata2,mapper,label,t_outfile,worddim,labelname,dataname)
                 seqdata1 = []
                 seqdata2 = []
                 label = []
@@ -88,7 +88,7 @@ def convert_siamese(infile1,infile2,labelfile,outfile,mapper,worddim,batchsize):
             seqdata2 = np.asarray(seqdata2)
             label = np.asarray(label)
             t_outfile = outfile + '.batch' + str(batchnum)
-            seq2feature_siamese(seqdata1,seqdata2,mapper,label,t_outfile,worddim)
+            seq2feature_siamese(seqdata1,seqdata2,mapper,label,t_outfile,worddim,labelname,dataname)
 
     return batchnum
 
@@ -113,6 +113,8 @@ def parse_args():
     parser.add_argument("-i", "--infile2", dest="infile2", default="", help="The paired input file for siamese network")
     parser.add_argument("-b", "--batch", dest="batch", type=int,default=5000, help="Batch size for data storage (Defalt:5000)")
     parser.add_argument("-p", "--prefix", dest="maniprefix",default='/data', help="The model_dir (Default: /data . This only works for mri-wrapper)")
+    parser.add_argument("-l", "--labelname", dest="labelname",default='label', help="The group name for labels in the HDF5 file")
+    parser.add_argument("-d", "--dataname", dest="dataname",default='data', help="The group name for data in the HDF5 file")
 
     return parser.parse_args()
 
@@ -132,7 +134,7 @@ if __name__ == "__main__":
                 args.mapper[word] = vec
 
     if args.infile2 == '':
-        batchnum = convert(args.infile,args.labelfile,args.outfile,args.mapper,len(args.mapper['A']),args.batch)
+        batchnum = convert(args.infile,args.labelfile,args.outfile,args.mapper,len(args.mapper['A']),args.batch,args.labelname,args.dataname)
     else:
-        batchnum = convert_siamese(args.infile,args.infile2,args.labelfile,args.outfile,args.mapper,len(args.mapper['A']),args.batch)
+        batchnum = convert_siamese(args.infile,args.infile2,args.labelfile,args.outfile,args.mapper,len(args.mapper['A']),args.batch,args.labelname,args.dataname)
     manifest(args.outfile,batchnum,args.maniprefix)
