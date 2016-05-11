@@ -117,10 +117,12 @@ pullKmerNonOverlap <- function(chridx){
 }
 
 pullSeq <- function(loci,geomefile,offsetfile){
+	if (nrow(loci)==0) return(c())
 	uni_chr = unique(loci[,1])
 	seq = matrix(nrow=nrow(loci),ncol=1)
 	for (chridx in 1:length(uni_chr)){
 		chr = uni_chr[chridx]
+		print(paste0('chr',chr))
 		ref <- readRef(genomefile,offsetfile,chr)
 		pick = which(loci[,1]==chr)
 		part = loci[pick,]
@@ -164,10 +166,12 @@ pullKmerNonOverlapTwoDirec <- function(chridx){
 	return(out)
 }
 pullSeqRev <- function(loci,geomefile,offsetfile){
+	if (nrow(loci)==0) return(c())
 	uni_chr = unique(loci[,1])
 	seq = matrix(nrow=nrow(loci),ncol=1)
 	for (chridx in 1:length(uni_chr)){
 		chr = uni_chr[chridx]
+		print(paste0('chr',chr))
 		ref <- readRef(genomefile,offsetfile,chr)
 		pick = which(loci[,1]==chr)
 		part = loci[pick,]

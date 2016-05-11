@@ -6,7 +6,7 @@ from itertools import izip
 def outputHDF5(data,label,filename,labelname,dataname):
     print 'data shape: ',data.shape
     comp_kwargs = {'compression': 'gzip', 'compression_opts': 1}
-    label = [[x.astype(np.float32)] for x in label]
+    #label = [[x.astype(np.float32)] for x in label]
     with h5py.File(filename, 'w') as f:
     	f.create_dataset(dataname, data=data, **comp_kwargs)
     	f.create_dataset(labelname, data=label, **comp_kwargs)
@@ -41,7 +41,8 @@ def convert(infile,labelfile,outfile,mapper,worddim,batchsize,labelname,dataname
         batchnum = 0
         for x,y in izip(seqfile,labelfile):
             seqdata.append(list(x.strip().split()[1]))
-            label.append(float(y.strip()))
+            #label.append(float(y.strip()))
+            label.append(map(float,y.strip().split()))
             cnt = (cnt+1)% batchsize
             if cnt == 0:
                 batchnum = batchnum + 1
@@ -70,7 +71,8 @@ def convert_siamese(infile1,infile2,labelfile,outfile,mapper,worddim,batchsize,l
         for x1,x2,y in izip(seqfile1,seqfile2,labelfile):
             seqdata1.append(list(x1.strip().split()[1]))
             seqdata2.append(list(x2.strip().split()[1]))
-            label.append(float(y.strip()))
+            #label.append(float(y.strip()))
+            label.append(map(float,y.strip().split()))
             cnt = (cnt+1)% batchsize
             if cnt == 0:
                 batchnum = batchnum + 1
