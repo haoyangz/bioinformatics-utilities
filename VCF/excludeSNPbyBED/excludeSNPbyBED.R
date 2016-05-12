@@ -26,9 +26,10 @@ for (fileidx in 1:length(files)){
 		system(paste0('cp ',VCFdir,'/',file,' ',outfile))
 	}else{
 		part = mat[pick,]
-		write.table(part,file='tmp',row.names=F,col.names=F,quote=F,sep="\t")
-		cmd = paste('python excludeSNPbyBED.py ',file.path(VCFdir,file),'tmp',flank,'>',outfile,sep=' ');
+		tmpfile = tempfile()
+		write.table(part,file=tmpfile,row.names=F,col.names=F,quote=F,sep="\t")
+		cmd = paste('python /cluster/zeng/code/research/tools/VCF/excludeSNPbyBED/excludeSNPbyBED.py ',file.path(VCFdir,file),tmpfile,flank,'>',outfile,sep=' ');
 		system(cmd);
-		system('rm tmp');
+		system(paste0('rm ',tmpfile));
 	}
 }

@@ -23,9 +23,10 @@ for (fileidx in 1:length(files)){
 	pick = which(mat[,1] == thischr)
 	if (length(pick)>0){
 		part = mat[pick,]
-		write.table(part,file='tmp',row.names=F,col.names=F,quote=F,sep="\t")
-		cmd = paste('python subsetSNPbyBED.py ',file.path(VCFdir,file),'tmp',flank,'>',outfile,sep=' ');
+		tmpfile = tempfile()
+		write.table(part,file=tmpfile,row.names=F,col.names=F,quote=F,sep="\t")
+		cmd = paste('python /cluster/zeng/code/research/tools/VCF/subsetSNPbyBED/subsetSNPbyBED.py ',file.path(VCFdir,file),tmpfile,flank,'>',outfile,sep=' ');
 		system(cmd);
-		system('rm tmp');
+		system(paste0('rm ',tmpfile));
 	}
 }
