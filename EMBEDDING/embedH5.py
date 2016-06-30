@@ -20,6 +20,11 @@ def seq2feature(data,mapper,label,out_filename,worddim,labelname,dataname):
         out.append(result1)
     outputHDF5(np.asarray(out),label,out_filename,labelname,dataname)
 
+def feature2feature(data,mapper,label,out_filename,worddim,labelname,dataname):
+    out = np.asarray(data)[:,None,None,:]
+    outputHDF5(out,label,out_filename,labelname,dataname)
+
+
 def embed(seq,mapper,worddim):
     mat = np.asarray([mapper[element] if element in mapper else np.random.rand(worddim)*2-1 for element in seq])
     return mat
@@ -33,14 +38,17 @@ def seq2feature_siamese(data1,data2,mapper,label,out_filename,worddim,labelname,
         out.append(result)
     outputHDF5(np.asarray(out),label,out_filename,labelname,dataname)
 
-def convert(infile,labelfile,outfile,mapper,worddim,batchsize,labelname,dataname):
+def convert(infile,labelfile,outfile,mapper,worddim,batchsize,labelname,dataname,isseq):
     with open(infile) as seqfile, open(labelfile) as labelfile:
         cnt = 0
         seqdata = []
         label = []
         batchnum = 0
         for x,y in izip(seqfile,labelfile):
-            seqdata.append(list(x.strip().split()[1]))
+            if isseq:
+                seqdata.append(list(x.strip().split()[1]))
+            else:
+                seqdata.append(map(float,x.strip().split()))
             #label.append(float(y.strip()))
             label.append(map(float,y.strip().split()))
             cnt = (cnt+1)% batchsize
@@ -49,7 +57,10 @@ def convert(infile,labelfile,outfile,mapper,worddim,batchsize,labelname,dataname
                 seqdata = np.asarray(seqdata)
                 label = np.asarray(label)
                 t_outfile = outfile + '.batch' + str(batchnum)
-                seq2feature(seqdata,mapper,label,t_outfile,worddim,labelname,dataname)
+                if isseq:
+                    seq2feature(seqdata,mapper,label,t_outfile,worddim,labelname,dataname)
+                else:
+                    feature2feature(seqdata,mapper,label,t_outfile,worddim,labelname,dataname)
                 seqdata = []
                 label = []
         if cnt >0:
@@ -57,7 +68,10 @@ def convert(infile,labelfile,outfile,mapper,worddim,batchsize,labelname,dataname
             seqdata = np.asarray(seqdata)
             label = np.asarray(label)
             t_outfile = outfile + '.batch' + str(batchnum)
-            seq2feature(seqdata,mapper,label,t_outfile,worddim,labelname,dataname)
+            if isseq:
+                seq2feature(seqdata,mapper,label,t_outfile,worddim,labelname,dataname)
+            else:
+                feature2feature(seqdata,mapper,label,t_outfile,worddim,labelname,dataname)
     return batchnum
 
 
@@ -118,6 +132,7 @@ def parse_args():
     parser.add_argument("-p", "--prefix", dest="maniprefix",default='/data', help="The model_dir (Default: /data . This only works for mri-wrapper)")
     parser.add_argument("-l", "--labelname", dest="labelname",default='label', help="The group name for labels in the HDF5 file")
     parser.add_argument("-d", "--dataname", dest="dataname",default='data', help="The group name for data in the HDF5 file")
+    parser.add_argument("-s", "--isseq", dest="isseq",default='Y', help="The group name for data in the HDF5 file")
 
     return parser.parse_args()
 
@@ -140,7 +155,8 @@ if __name__ == "__main__":
                 vec = [float(item) for item in line[1:]]
                 args.mapper[word] = vec
     if args.infile2 == '':
-        batchnum = convert(args.infile,args.labelfile,args.outfile,args.mapper,len(args.mapper['A']),args.batch,args.labelname,args.dataname)
+        print args.isseq =='Y'
+        batchnum = convert(args.infile,args.labelfile,args.outfile,args.mapper,len(args.mapper['A']),args.batch,args.labelname,args.dataname,args.isseq=='Y')
     else:
         batchnum = convert_siamese(args.infile,args.infile2,args.labelfile,args.outfile,args.mapper,len(args.mapper['A']),args.batch,args.labelname,args.dataname)
     manifest(args.outfile,batchnum,args.maniprefix)

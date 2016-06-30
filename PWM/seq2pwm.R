@@ -61,8 +61,10 @@ for (gidx in 1:length(uni_group)){
 	}else{
 		app=F
 	}
-	printPWM(pwmfile,mat,paste0('PWM',gidx),app)
+	printPWM(pwmfile,mat,paste0('PWM',uni_group[gidx]),app)
 	nm=apply(mat[1:4,]+0.1,2,function(j){j/sum(j)})
+	print(gidx)
+	print(nm)
 	seqLogo(nm)
 }
 dev.off()

@@ -92,7 +92,7 @@ for train,test in kf:
     else:
         for t_file in files_shuffled:
             fileprefix_base = os.path.basename(t_file)
-            splitFile_novalid(train,test,t_file,os.path.join(cvdir,fileprefix_base+'.train'),os.path.join(cvdir,fileprefix_base+'.test'))
+            splitFile_novalid(train,test,t_file,os.path.join(cvdir,fileprefix_base+'.'+mode.split('_')[0]),os.path.join(cvdir,fileprefix_base+'.'+mode.split('_')[1]))
 
     cvcnt += 1
     if cvcnt>=outputCVnum:
