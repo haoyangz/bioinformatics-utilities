@@ -1,5 +1,5 @@
 import argparse,pwd,os,numpy as np,h5py
-from os.path import splitext,exists,dirname
+from os.path import splitext,exists,dirname,join,basename
 from os import makedirs
 from itertools import izip
 
@@ -110,7 +110,7 @@ def convert_siamese(infile1,infile2,labelfile,outfile,mapper,worddim,batchsize,l
     return batchnum
 
 def manifest(out_filename,batchnum,prefix):
-    locfile = out_filename.split('.')[0] + '.txt'
+    locfile = join(dirname(out_filename),basename(out_filename).split('.')[0] + '.txt')
     with open(locfile,'w') as f:
         for i in range(batchnum):
             f.write('.'.join(['/'.join([prefix]+out_filename.split('/')[-2:]),'batch'+str(i+1)])+'\n')
@@ -145,7 +145,7 @@ if __name__ == "__main__":
         makedirs(outdir)
 
     if args.mapperfile == "":
-        args.mapper = {'A':[1,0,0,0],'C':[0,1,0,0],'G':[0,0,1,0],'T':[0,0,0,1]}
+        args.mapper = {'A':[1,0,0,0],'C':[0,1,0,0],'G':[0,0,1,0],'T':[0,0,0,1],'N':[0,0,0,0]}
     else:
         args.mapper = {}
         with open(args.mapperfile,'r') as f:
