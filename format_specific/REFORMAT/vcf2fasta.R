@@ -5,8 +5,9 @@ vcfdir = args[1]
 genomefile = args[2]
 offsetfile = args[3]
 out_dir = args[4]
-flank_len = as.numeric(args[5])
-combine_allele = args[6]
+flank_left = as.numeric(args[5])
+flank_right = as.numeric(args[6])
+combine_allele = args[7]
 
 if (file.exists(out_dir)){
 	print('outputdir exist;will be removed')
@@ -32,7 +33,7 @@ for (i in 1:length(files)){
 files = files[pick]
 
 cl <- makeCluster(11, type = "SOCK") 
-clusterExport(cl, c("files","vcfdir","genomefile","offsetfile","flank_len","out_dir","combine_allele")) 
+clusterExport(cl, c("files","vcfdir","genomefile","offsetfile","flank_left","flank_right","out_dir","combine_allele")) 
 cc = clusterCall(cl,function(){source('/cluster/zeng/code/research/tools/GENOME/utility.R')})
 run <- function(i){
 	if (combine_allele=='T'){
@@ -56,7 +57,7 @@ run <- function(i){
 	
 	ref = readRef(genomefile,offsetfile,chr)
 	ref_size = length(ref)
-	finallen = floor(2*flank_len+1)
+	finallen = floor(flank_left+flank_right+1)
 	for (var in 1:nrow(data)){
 		if (data[var,4] == '-'){
 			altseq = ''
@@ -67,13 +68,13 @@ run <- function(i){
 		altlen = nchar(altseq)
 
 		pos = data[var,2]
-		s = floor(pos-flank_len)
-		ref_e = floor(pos+flank_len)
+		s = floor(pos-flank_left)
+		ref_e = floor(pos+flank_right+reflen-1)
 		
-		var_rel_pos = ceiling(flank_len+1)
+		var_rel_pos = ceiling(flank_left+1)
 		if (s<1){
         	ref_e = ref_e + 1-s
-			var_rel_pos = pos
+			var_rel_pos = var_rel_pos - (1-s)
         	s = 1
         }
         if (ref_e>ref_size){
@@ -84,16 +85,16 @@ run <- function(i){
 		alt_left_s = s
 		alt_left_e = pos-1
 		alt_right_s = pos + reflen
-		alt_right_e = alt_right_s + (finallen - (pos-1-s+1) - altlen) -1
-		stopifnot((alt_left_e - alt_left_s+1) + altlen + (alt_right_e - alt_right_s + 1)==finallen)
+		alt_right_e = alt_right_s + flank_right -1
+		#stopifnot((alt_left_e - alt_left_s+1) + altlen + (alt_right_e - alt_right_s + 1)==finallen)
 
 		if (alt_right_e > ref_size){
 			alt_left_s = alt_left_s - (alt_right_e - ref_size)
 			alt_right_e = ref_size
-			stopifnot((alt_left_e - alt_left_s+1) + altlen + (alt_right_e - alt_right_s + 1)==finallen)
+			#stopifnot((alt_left_e - alt_left_s+1) + altlen + (alt_right_e - alt_right_s + 1)==finallen)
 		}
 
-		name = paste0('chr',chr,':',data[var,2],':',flank_len)
+		name = paste0('chr',chr,':',data[var,2],':',flank_left,':',flank_right)
 		
 		#Generate refernece seq
 		if (combine_allele=='T'){
@@ -103,7 +104,14 @@ run <- function(i){
 		}
 		ref_seq = translate(ref[s:ref_e])
 		ref_allele = substr(ref_seq,var_rel_pos,var_rel_pos+reflen-1)
+		
 		if (ref_allele != data[var,3]){
+			print(substr(ref_seq,var_rel_pos-1,var_rel_pos+reflen-1+1))
+			print(ref_seq)
+			print(data[var,])
+			print(var_rel_pos)
+			print(s)
+			print(ref_e)
 			print(ref_allele)
 			print(data[var,3])
 			print('Ref doesn\'t match!')
