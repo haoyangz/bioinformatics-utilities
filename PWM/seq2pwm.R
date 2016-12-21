@@ -1,11 +1,12 @@
 require('seqLogo')
 require('Biostrings')
+library(tools)
 args <- commandArgs(T)
-seqfile = args[1]
+seqfile = file_path_as_absolute(args[1])
 logofile = args[2]
 pwmfile = args[3]
 
-
+maxlen = 2000000
 rc = function(x){
 	    reverseComplement(DNAStringSet(x))
 }
@@ -16,6 +17,7 @@ buildMat <- function(seq){
 	pa1=pairwiseAlignment(DNAStringSet(incluster),targ)
 	s1=score(pa1)
 	pa2=pairwiseAlignment(DNAStringSet(rc(incluster)),targ)
+	s1=score(pa1)
 	s2=score(pa2)
 	x1=0
 	if(sum(s1>s2)>0)
@@ -46,26 +48,33 @@ printPWM <- function(pwmfile,pwm,pwmname,app){
 	}
 	close(fileConn)
 }
-
-
-seq = read.delim(seqfile,header=F,stringsAsFactors=F,sep=' ')
-groups = seq[,2]
-uni_group = unique(groups)
+cwd = getwd()
+tmpdir = tempdir()
+setwd(tmpdir)
+system( paste0('awk \'{print > $2 }\' ',seqfile))
+setwd(cwd)
+allfiles = list.files(path=tmpdir)
 
 pdf(logofile)
-for (gidx in 1:length(uni_group)){
-	thisseq = seq[groups==uni_group[gidx],1]
+for (tfile_idx in 1:length(allfiles)){
+	tfile = allfiles[tfile_idx]
+	print(paste('Group',tfile,'Idx',tfile_idx))
+	seq = read.delim(file.path(tmpdir,tfile),header=F,stringsAsFactors=F,sep='\t')
+	thisseq = seq[,1]
+	thisgroup = seq[1,2]
+	if (length(thisseq)>maxlen){
+		thisseq = thisseq[1:maxlen]
+	}
 	mat = buildMat(thisseq)
-	if (gidx>1){
+	if (tfile_idx>1){
 		app=T
 	}else{
 		app=F
 	}
-	printPWM(pwmfile,mat,paste0('PWM',uni_group[gidx]),app)
+	printPWM(pwmfile,mat,paste0('PWM',thisgroup),app)
 	nm=apply(mat[1:4,]+0.1,2,function(j){j/sum(j)})
-	print(gidx)
 	print(nm)
 	seqLogo(nm)
 }
 dev.off()
-
+system(paste('rm -r',tmpdir))
